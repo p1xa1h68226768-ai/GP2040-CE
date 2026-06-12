@@ -1,6 +1,8 @@
 #ifndef NEGCON_INPUT_H_
 #define NEGCON_INPUT_H_
 
+#include <string>
+#include <stdint.h>
 #include "gpaddon.h"
 #include "gamepad.h"
 
@@ -12,12 +14,13 @@
 
 class NeGconInput : public GPAddon {
 public:
-    virtual bool available() override;
-    virtual void setup() override;
-    virtual void process() override;
-    // ↓これが欠けていたのが全エラーの元凶です
-    virtual void preprocess() override {}
-    virtual std::string name() override { return "NeGconInput"; }
+    virtual bool available();
+    virtual void setup();
+    virtual void process();
+    virtual void preprocess() {}
+    virtual void postprocess(bool sent) {}
+    virtual void reinit() {}
+    virtual std::string name() { return "NeGconInput"; }
 
 private:
     uint8_t spi_transfer(uint8_t data);
