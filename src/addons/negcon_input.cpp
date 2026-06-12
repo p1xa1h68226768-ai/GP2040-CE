@@ -1,5 +1,7 @@
 #include "addons/negcon_input.h"
 #include "storagemanager.h"
+#include "hardware/gpio.h"
+#include "pico/stdlib.h"
 
 bool NeGconInput::available() {
     return true;
@@ -54,7 +56,6 @@ void NeGconInput::process() {
         uint8_t btn_i = spi_transfer(0x00);
         uint8_t btn_ii = spi_transfer(0x00);
         
-        // 変数に入れず空読みすることで、通信を維持しつつエラー警告を消滅させます
         spi_transfer(0x00); 
 
         if (~data1 & 0x10) gamepad->state.dpad |= GAMEPAD_MASK_UP;
