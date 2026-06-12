@@ -35,6 +35,9 @@ uint8_t NeGconInput::spi_transfer(uint8_t data) {
         gpio_put(NEGCON_PIN_CLK, 1);
         sleep_us(2);
     }
+    // 【追記部分】1バイト送信後、コマンド線を待機状態に戻し、コントローラーの息継ぎ(ACK)を20マイクロ秒待つ
+    gpio_put(NEGCON_PIN_CMD, 1); 
+    sleep_us(20); 
     return rx;
 }
 
