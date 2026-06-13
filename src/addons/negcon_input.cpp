@@ -88,31 +88,16 @@ void NeGconInput::process() {
         
         spi_transfer(0x00); 
 
-        // 十字キー (コンパイラの最適化バグを防ぐ最も安全な構文)
-        bool dpad_up    = !(data1 & 0x10);
-        bool dpad_right = !(data1 & 0x20);
-        bool dpad_down  = !(data1 & 0x40);
-        bool dpad_left  = !(data1 & 0x80);
+        // 【最重要修正】基板からのゴースト入力を完全に消去し、SOCDクリーナーの干渉を防ぐ
+        gamepad->state.dpad = 0;
 
-        // 【診断用ミラーリング】十字キーと同時に、使っていないボタンも光らせる
-        if (dpad_up) {
-            gamepad->state.dpad |= GAMEPAD_MASK_UP;
-            gamepad->state.buttons |= GAMEPAD_MASK_L3; // 診断用: L3 (ボタン9)
-        }
-        if (dpad_right) {
-            gamepad->state.dpad |= GAMEPAD_MASK_RIGHT;
-            gamepad->state.buttons |= GAMEPAD_MASK_R3; // 診断用: R3 (ボタン10)
-        }
-        if (dpad_down) {
-            gamepad->state.dpad |= GAMEPAD_MASK_DOWN;
-            gamepad->state.buttons |= GAMEPAD_MASK_S1; // 診断用: BACK
-        }
-        if (dpad_left) {
-            gamepad->state.dpad |= GAMEPAD_MASK_LEFT;
-            gamepad->state.buttons |= GAMEPAD_MASK_A1; // 診断用: GUIDE
-        }
+        // 十字キー (純粋なPOV出力のみ)
+        if (!(data1 & 0x10)) gamepad->state.dpad |= GAMEPAD_MASK_UP;
+        if (!(data1 & 0x20)) gamepad->state.dpad |= GAMEPAD_MASK_RIGHT;
+        if (!(data1 & 0x40)) gamepad->state.dpad |= GAMEPAD_MASK_DOWN;
+        if (!(data1 & 0x80)) gamepad->state.dpad |= GAMEPAD_MASK_LEFT;
         
-        // デジタルボタン (構文修正)
+        // デジタルボタン
         if (!(data1 & 0x08)) gamepad->state.buttons |= GAMEPAD_MASK_S2; // START
         if (!(data2 & 0x10)) gamepad->state.buttons |= GAMEPAD_MASK_B2; // A
         if (!(data2 & 0x20)) gamepad->state.buttons |= GAMEPAD_MASK_B1; // B
@@ -120,16 +105,10 @@ void NeGconInput::process() {
 
         gamepad->hasAnalogTriggers = true;
 
-        // 1. ねじり -> 左スティックX軸
+        // アナログ軸
         gamepad->state.lx = apply_steering_curve(twist); 
-        
-        // 2. 1ボタン -> RT
         gamepad->state.rt = btn_i * 257;
-
-        // 3. 2ボタン -> LT
         gamepad->state.lt = btn_ii * 257;
-        
-        // 4. アナログLボタン -> 右スティックY軸
         gamepad->state.ry = 32768 + (btn_l * 128); 
     }
 
