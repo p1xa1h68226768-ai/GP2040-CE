@@ -40,7 +40,6 @@ uint8_t NeGconInput::spi_transfer(uint8_t data) {
     return rx;
 }
 
-// 高速な整数ステアリングカーブ演算
 uint16_t apply_steering_curve(uint8_t twist_raw) {
     int32_t raw = 255 - twist_raw; 
     int32_t x = raw - 127;         
@@ -88,29 +87,32 @@ void NeGconInput::process() {
         
         spi_transfer(0x00); 
 
-        // 【最重要修正】システムとの競合を防ぐため、追加(|=)ではなく純粋な状態変数を作り、直接代入(=)する
-        uint8_t dpad_state = 0;
-        if (!(data1 & 0x10)) dpad_state |= GAMEPAD_MASK_UP;
-        if (!(data1 & 0x20)) dpad_state |= GAMEPAD_MASK_RIGHT;
-        if (!(data1 & 0x40)) dpad_state |= GAMEPAD_MASK_DOWN;
-        if (!(data1 & 0x80)) dpad_state |= GAMEPAD_MASK_LEFT;
-        
-        // これにより、GP2040-CEのコアシステムに邪魔されることなく確実にPOVとして認識されます
-        gamepad->state.dpad = dpad_state;
+        // 十字キー (snes_inputの純正作法に完全準拠、SOCD等は一切不要)
+        if (!(data1 & 0x10)) gamepad->state.dpad |= GAMEPAD_MASK_UP;
+        if (!(data1 & 0x20)) gamepad->state.dpad |= GAMEPAD_MASK_RIGHT;
+        if (!(data1 & 0x40)) gamepad->state.dpad |= GAMEPAD_MASK_DOWN;
+        if (!(data1 & 0x80)) gamepad->state.dpad |= GAMEPAD_MASK_LEFT;
         
         // デジタルボタン
-        if (!(data1 & 0x08)) gamepad->state.buttons |= GAMEPAD_MASK_S2; // START
-        if (!(data2 & 0x10)) gamepad->state.buttons |= GAMEPAD_MASK_B2; // A
-        if (!(data2 & 0x20)) gamepad->state.buttons |= GAMEPAD_MASK_B1; // B
-        if (!(data2 & 0x08)) gamepad->state.buttons |= GAMEPAD_MASK_R1; // RB
+        if (!(data1 & 0x08)) gamepad->state.buttons |= GAMEPAD_MASK_S2; 
+        if (!(data2 & 0x10)) gamepad->state.buttons |= GAMEPAD_MASK_B2; 
+        if (!(data2 & 0x20)) gamepad->state.buttons |= GAMEPAD_MASK_B1; 
+        if (!(data2 & 0x08)) gamepad->state.buttons |= GAMEPAD_MASK_R1; 
 
         gamepad->hasAnalogTriggers = true;
+        // XInputドライバの誤作動を防ぐため、アナログ使用フラグを明示
+        gamepad->hasLeftAnalogStick = true;
+        gamepad->hasRightAnalogStick = true;
 
         // アナログ軸
         gamepad->state.lx = apply_steering_curve(twist); 
         gamepad->state.rt = btn_i * 257;
         gamepad->state.lt = btn_ii * 257;
         gamepad->state.ry = 32768 + (btn_l * 128); 
+        
+        // 未使用の軸も中心値(32768)で安定させる
+        gamepad->state.ly = 32768; 
+        gamepad->state.rx = 32768; 
     }
 
     gpio_put(NEGCON_PIN_ATT, 1);
