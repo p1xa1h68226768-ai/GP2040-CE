@@ -88,14 +88,15 @@ void NeGconInput::process() {
         
         spi_transfer(0x00); 
 
-        // 【最重要修正】基板からのゴースト入力を完全に消去し、SOCDクリーナーの干渉を防ぐ
-        gamepad->state.dpad = 0;
-
-        // 十字キー (純粋なPOV出力のみ)
-        if (!(data1 & 0x10)) gamepad->state.dpad |= GAMEPAD_MASK_UP;
-        if (!(data1 & 0x20)) gamepad->state.dpad |= GAMEPAD_MASK_RIGHT;
-        if (!(data1 & 0x40)) gamepad->state.dpad |= GAMEPAD_MASK_DOWN;
-        if (!(data1 & 0x80)) gamepad->state.dpad |= GAMEPAD_MASK_LEFT;
+        // 【最重要修正】システムとの競合を防ぐため、追加(|=)ではなく純粋な状態変数を作り、直接代入(=)する
+        uint8_t dpad_state = 0;
+        if (!(data1 & 0x10)) dpad_state |= GAMEPAD_MASK_UP;
+        if (!(data1 & 0x20)) dpad_state |= GAMEPAD_MASK_RIGHT;
+        if (!(data1 & 0x40)) dpad_state |= GAMEPAD_MASK_DOWN;
+        if (!(data1 & 0x80)) dpad_state |= GAMEPAD_MASK_LEFT;
+        
+        // これにより、GP2040-CEのコアシステムに邪魔されることなく確実にPOVとして認識されます
+        gamepad->state.dpad = dpad_state;
         
         // デジタルボタン
         if (!(data1 & 0x08)) gamepad->state.buttons |= GAMEPAD_MASK_S2; // START
